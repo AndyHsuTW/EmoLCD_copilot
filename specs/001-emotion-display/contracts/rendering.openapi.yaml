@@ -1,0 +1,102 @@
+openapi: 3.1.0
+info:
+  title: Emotion Rendering CLI 合約（對齊用）
+  version: 0.1.0
+  description: >
+    對齊單一 CLI 入口的合約，描述將表情渲染到 LCD framebuffer
+    或 dry-run PNG 時的預期輸入與輸出。
+paths:
+  /render:
+    post:
+      summary: 將表情渲染到 framebuffer 或 dry-run 圖片
+      description: 對應 CLI 旗標：emotion（必填）、target（lcd｜dry-run）、可選輸出路徑。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenderRequest'
+      responses:
+        '200':
+          description: Render request accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RenderResult'
+        '400':
+          description: Invalid emotion or target, or contract not met
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  schemas:
+    RenderRequest:
+      type: object
+      required:
+        - emotion
+        - target
+      properties:
+        emotion:
+          type: string
+          enum: [Neutral, Smile, Angry]
+          description: 要渲染的表情（必填，必須明確指定）。
+        target:
+          type: string
+          enum: [lcd, dry-run]
+          description: 輸出模式；lcd 寫入 /dev/fb0，dry-run 產生 PNG。
+        framebufferPath:
+          type: string
+          default: /dev/fb0
+          description: target=lcd 時的 framebuffer 裝置路徑。
+        resolution:
+          type: object
+          properties:
+            width:
+              type: integer
+              default: 480
+            height:
+              type: integer
+              default: 320
+          required: [width, height]
+        pixelFormat:
+          type: string
+          enum: [RGB565]
+          default: RGB565
+        dryRunPath:
+          type: string
+          default: /tmp/emotion.png
+          description: target=dry-run 時的輸出路徑。
+    RenderResult:
+      type: object
+      required:
+        - emotion
+        - target
+        - durationMs
+        - outputPath
+      properties:
+        emotion:
+          type: string
+          enum: [Neutral, Smile, Angry]
+        target:
+          type: string
+          enum: [lcd, dry-run]
+        durationMs:
+          type: integer
+          description: 渲染耗時（毫秒）。
+        outputPath:
+          type: string
+          description: Framebuffer 路徑或 PNG 輸出路徑。
+    ErrorResponse:
+      type: object
+      required:
+        - message
+        - allowedEmotions
+      properties:
+        message:
+          type: string
+        allowedEmotions:
+          type: array
+          items:
+            type: string
+            enum: [Neutral, Smile, Angry]

@@ -7,6 +7,9 @@
 - 目前狀態：只有規劃與環境說明（`README.md`），尚未建立 `src/` 下的 .NET 專案與實作程式碼。
 - 硬體：Raspberry Pi 5 + Waveshare 3.5" LCD (B) v2，解析度固定 480×320，像素格式 RGB565，裝置節點為 `/dev/fb0`。
 
+## 語言
+- 所有 AI 產出的文件與回覆一律使用繁體中文（zh-TW），維持專業且精簡的語氣。
+
 ## 未來檔案與資料夾結構（建議 AI 採用）
 - `src/EmoLcdDemo/`：主要 .NET 8 console 專案
   - `Program.cs`：解析參數（表情種類），呼叫後續服務
