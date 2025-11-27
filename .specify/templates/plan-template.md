@@ -18,11 +18,11 @@
   the iteration process.
 -->
 
-**語言／版本**：[例如 Python 3.11（預設）、或需澄清]  
-**主要依賴**：[例如 Pillow；若改用 ImageSharp／SkiaSharp，需註記理由]  
+**語言／版本**：[例如 C#/.NET 8（預設）、或需澄清]  
+**主要依賴**：[例如 ImageSharp／SkiaSharp；若改用其他套件需註記理由]  
 **儲存**：[若適用，例如檔案或 N/A]  
 **測試**：[例如 pytest、XCTest、cargo test 或待澄清]  
-**目標平台**：[例如 Raspberry Pi OS 上的 /dev/fb0]  
+**目標平台**：[例如 Raspberry Pi OS 上的 `/dev/fb0`]  
 **專案型態**：[單一專案／前後端分離等]  
 **效能目標**：[領域特定，例如 480×320 全畫面更新在 16ms 以內]  
 **限制**：[領域特定，例如 16bpp RGB565、不得新增 GUI 堆疊]  

@@ -1,0 +1,56 @@
+# Build outputs
+bin/
+obj/
+**/bin/
+**/obj/
+*.user
+*.suo
+*.userprefs
+*.csproj.user
+*.csproj.DotSettings
+
+# Packages and restores
+packages/
+*.nupkg
+*.snupkg
+*.lock.json
+project.lock.json
+
+# IDE
+.vs/
+.idea/
+.vscode/
+
+# Logs and temp
+*.log
+*.tmp
+*.swp
+*.sln.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage and test artifacts
+TestResult*/
+coverage*/
+*.coverage
+*.coveragexml
+
+# Terraform/Helm (not in use, kept for safety)
+.terraform/
+*.tfstate*
+.helmignore
+
+# Python (in case of tooling)
+__pycache__/
+*.pyc
+.venv/
+
+# Node (in case of tooling)
+node_modules/
+dist/
+build/
+
+# Generated test outputs
+specs/001-emotion-display/test_output/

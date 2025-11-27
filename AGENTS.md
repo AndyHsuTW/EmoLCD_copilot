@@ -3,7 +3,7 @@
 Auto-generated from all feature plans. Last updated: 2025-11-26
 
 ## Active Technologies
-- Python 3.11 + Pillow for drawing; mmap-based framebuffer write (RGB565) without extra GUI stacks (001-emotion-display)
+- C#/.NET 8 + ImageSharp for drawing; direct RGB565 framebuffer write or PNG dry-run output (001-emotion-display)
 
 - (001-emotion-display)
 
@@ -46,7 +46,7 @@ tests/
 		- 高階模組依賴抽象而非具體實作，方便在不同執行環境（例如 framebuffer、檔案輸出）間切換。
 
 ## Recent Changes
-- 001-emotion-display: Added Python 3.11 + Pillow for drawing; mmap-based framebuffer write (RGB565) without extra GUI stacks
+- 001-emotion-display: Switched to C#/.NET 8 + ImageSharp for drawing; direct RGB565 framebuffer writes or PNG dry-run output
 
 - 001-emotion-display: Added
 

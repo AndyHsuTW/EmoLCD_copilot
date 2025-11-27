@@ -1,6 +1,6 @@
 # EmoLCD 專案說明
 
-在 Raspberry Pi 5 上，使用 C#/.NET 在 Waveshare 3.5" SPI LCD 上顯示表情圖案的實驗與開發紀錄。
+在 Raspberry Pi 5 上，使用 C#/.NET 8 在 Waveshare 3.5" SPI LCD 上顯示表情圖案的實驗與開發紀錄。
 
 ## 硬體資訊
 
@@ -65,24 +65,25 @@
      - 色深：16 bits per pixel
      - 像素格式：RGB565（R:5bits, G:6bits, B:5bits），低階對齊。
 
-## 未來 .NET 程式架構（規劃中）
+## 執行與驗證（現況）
 
-目標：使用 .NET 8 console/service 程式，在 `/dev/fb0` 上繪製白底黑線條的表情（`Smile`, `Angry` 等）。
-
-- **主要路線**：
-  - 使用 ImageSharp 或 SkiaSharp 在記憶體中建立 480×320 圖像。
-  - 在圖像上以幾何圖形（圓形、線段、弧線）畫出眼睛、嘴巴、眉毛。
-  - 將 32-bit RGBA 像素資料轉為 RGB565 格式，寫入 `/dev/fb0`。
-
-- **重要類別（預計）**：
-  - `ExpressionType`：列出 `Smile`, `Angry`, `Neutral` … 等表情。
-  - `EmotionRenderer`：根據 `ExpressionType` 在 offscreen 影像上繪製表情。
-  - `FramebufferDisplay`：負責開啟 `/dev/fb0`，並將像素資料以 RGB565 寫入。
-
-- **執行方式（預計）**：
+- 還原與建置
   ```bash
-  dotnet run --project src/EmoLcdDemo -- Smile
-  dotnet run --project src/EmoLcdDemo -- Angry
+  dotnet restore
+  dotnet build
   ```
 
-後續會在 `src/EmoLcdDemo` 底下建立 .NET 專案與對應程式碼，並在本檔補充更詳細的建置與執行說明。
+- LCD 輸出（/dev/fb0）
+  ```bash
+  dotnet run --project src/EmoLcd.App -- --emotion Smile --target Lcd --framebuffer /dev/fb0
+  ```
+
+- dry-run PNG
+  ```bash
+  dotnet run --project src/EmoLcd.App -- --emotion Neutral --target DryRun --output /tmp/emotion.png
+  ```
+
+- 測試（含 framebuffer 假裝置、dry-run 與無效輸入）
+  ```bash
+  dotnet test
+  ```
