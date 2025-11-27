@@ -54,3 +54,7 @@ build/
 
 # Generated test outputs
 specs/001-emotion-display/test_output/
+
+.codex/history.jsonl
+.codex/sessions/
+.codex/auth.json
