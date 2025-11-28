@@ -69,7 +69,6 @@
 
 - 還原與建置
   ```bash
-  dotnet restore
   dotnet build
   ```
 
@@ -78,12 +77,27 @@
   dotnet run --project src/EmoLcd.App -- --emotion Smile --target Lcd --framebuffer /dev/fb0
   ```
 
+  - 必填旗標：`--emotion`, `--target`
+  - `--framebuffer` 須為可寫入的裝置檔案，否則 CLI 會提前失敗並提示「找不到」或「權限不足」。
 - dry-run PNG
   ```bash
   dotnet run --project src/EmoLcd.App -- --emotion Neutral --target DryRun --output /tmp/emotion.png
   ```
+  - `--output` 的父資料夾必須存在，否則 CLI 會提示「輸出資料夾不存在」。
 
 - 測試（含 framebuffer 假裝置、dry-run 與無效輸入）
   ```bash
   dotnet test
   ```
+ `--emotion` 與 `--target` 為必填；若缺少，CLI 會顯示允許值並直接結束。
+ `--target Lcd` 時必須提供存在且可寫入的 `--framebuffer` 路徑；工具會從 `/sys/class/graphics/fbX/virtual_size` 與 `bits_per_pixel` 建立契約，若像素資料大小或寬高不符就拒絕寫入。
+ `--target DryRun` 時需指定 `--output` 檔案，程式會先檢查父資料夾是否存在。
+ 若 Lcd 輸出因契約不符而失敗，程式會自動 fallback 到 dry-run PNG，並顯示實際輸出路徑以便人工檢查畫面（詳見下方實機驗證流程）。
+
+### 常見錯誤訊息
+
+- `缺少必要參數 --emotion`：啟動指令少帶 `--emotion`。
+- `缺少必要參數 --target`：啟動指令少帶 `--target`。
+- `不支援的表情：XXX`：表情超出 `Smile/Angry/Neutral` 等允許清單。
+- `輸出資料夾不存在：/path/...`：DryRun 模式的輸出路徑位於不存在的資料夾。
+- `framebuffer 無法寫入：權限不足 - /dev/fb0`：LCD 模式未以具寫權限的使用者執行。

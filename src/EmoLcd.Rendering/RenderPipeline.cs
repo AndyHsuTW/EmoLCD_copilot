@@ -1,62 +1,50 @@
-using System.Diagnostics;
 using EmoLcd.Domain.Models;
+using EmoLcd.Rendering.Display;
 using EmoLcd.Rendering.Expressions;
-using EmoLcd.Rendering.Framebuffer;
-using EmoLcd.Rendering.Pixels;
+using EmoLcd.Rendering.Primitives;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace EmoLcd.Rendering;
 
+/// <summary>
+/// 渲染管線，負責協調表情繪製與輸出目標之間的流程。
+/// </summary>
+/// <remarks>
+/// 此類別為渲染流程的核心，職責包括：
+/// <list type="bullet">
+///   <item>根據指定表情在記憶體中繪製 RGBA32 圖像</item>
+///   <item>將像素資料傳遞給 <see cref="IDisplayTarget"/> 進行輸出</item>
+/// </list>
+/// </remarks>
 public class RenderPipeline
 {
-    private readonly FramebufferWriter _framebufferWriter = new();
-
-    public RenderResult RenderToFramebuffer(RenderRequest request)
+    /// <summary>
+    /// 執行表情渲染，並透過指定的輸出目標完成最終輸出。
+    /// </summary>
+    /// <param name="request">渲染請求參數，包含表情類型、輸出目標與尺寸設定。</param>
+    /// <param name="displayTarget">輸出目標實作，決定像素資料如何被寫出（LCD 或 PNG）。</param>
+    /// <returns>渲染結果，包含耗時與輸出位置等資訊。</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="displayTarget"/> 為 null。</exception>
+    /// <exception cref="ArgumentOutOfRangeException">指定的表情類型不在 <see cref="ExpressionCatalog"/> 中。</exception>
+    public RenderResult Render(RenderRequest request, IDisplayTarget displayTarget)
     {
-        var emotion = request.Emotion;
-        using var image = DrawExpression(emotion, request.Width, request.Height);
+        ArgumentNullException.ThrowIfNull(displayTarget);
+
+        using var image = DrawExpression(request.Emotion, request.Width, request.Height);
         var pixels = new Rgba32[request.Width * request.Height];
         image.CopyPixelDataTo(pixels);
-        var buffer = Rgb565Converter.ToRgb565(pixels, request.Width, request.Height);
-
-        var start = Stopwatch.GetTimestamp();
-        _framebufferWriter.Write(buffer, request.FramebufferPath);
-        var duration = ElapsedMs(start);
-
-        return new RenderResult
-        {
-            Emotion = emotion,
-            Target = RenderTarget.Lcd,
-            DurationMs = duration,
-            OutputPath = request.FramebufferPath
-        };
+        return displayTarget.Render(pixels, request);
     }
 
-    public RenderResult RenderToFile(RenderRequest request)
-    {
-        var emotion = request.Emotion;
-        using var image = DrawExpression(emotion, request.Width, request.Height);
-
-        var start = Stopwatch.GetTimestamp();
-        image.SaveAsPng(request.OutputPath);
-        var duration = ElapsedMs(start);
-
-        return new RenderResult
-        {
-            Emotion = emotion,
-            Target = RenderTarget.DryRun,
-            DurationMs = duration,
-            OutputPath = request.OutputPath
-        };
-    }
-
-    private static long ElapsedMs(long start)
-    {
-        var elapsed = Stopwatch.GetTimestamp() - start;
-        return elapsed * 1000 / Stopwatch.Frequency;
-    }
-
+    /// <summary>
+    /// 根據表情類型在記憶體中繪製圖像。
+    /// </summary>
+    /// <param name="emotion">要繪製的表情類型。</param>
+    /// <param name="width">畫布寬度（像素）。</param>
+    /// <param name="height">畫布高度（像素）。</param>
+    /// <returns>繪製完成的 RGBA32 圖像，呼叫端負責 Dispose。</returns>
+    /// <exception cref="ArgumentOutOfRangeException">表情類型不在目錄中。</exception>
     private static Image<Rgba32> DrawExpression(Emotion emotion, int width, int height)
     {
         if (!ExpressionCatalog.TryGet(emotion, out var shape))
@@ -67,108 +55,34 @@ public class RenderPipeline
         var image = new Image<Rgba32>(width, height);
         var white = new Rgba32(255, 255, 255, 255);
         var black = new Rgba32(0, 0, 0, 255);
+        var canvas = new FaceCanvas(image, black);
 
-        // 填滿背景
-        image.ProcessPixelRows(accessor =>
-        {
-            for (int y = 0; y < height; y++)
-            {
-                var row = accessor.GetRowSpan(y);
-                for (int x = 0; x < width; x++)
-                {
-                    row[x] = white;
-                }
-            }
-        });
+        canvas.Clear(white);
+        canvas.DrawCircle(shape.LeftEye, shape.EyeRadius, shape.EyeStroke);
+        canvas.DrawCircle(shape.RightEye, shape.EyeRadius, shape.EyeStroke);
 
-        void DrawCircle((int X, int Y) center, int radius)
-        {
-            int r2 = radius * radius;
-            for (int y = center.Y - radius; y <= center.Y + radius; y++)
-            {
-                if (y < 0 || y >= height) continue;
-                int dy = y - center.Y;
-                for (int x = center.X - radius; x <= center.X + radius; x++)
-                {
-                    if (x < 0 || x >= width) continue;
-                    int dx = x - center.X;
-                    if (dx * dx + dy * dy <= r2)
-                    {
-                        image[x, y] = black;
-                    }
-                }
-            }
-        }
-
-        void DrawLine((int X, int Y) start, (int X, int Y) end, int thickness = 3)
-        {
-            int dx = Math.Abs(end.X - start.X), sx = start.X < end.X ? 1 : -1;
-            int dy = -Math.Abs(end.Y - start.Y), sy = start.Y < end.Y ? 1 : -1;
-            int err = dx + dy;
-            int x = start.X, y = start.Y;
-            while (true)
-            {
-                DrawThickPoint(x, y, thickness);
-                if (x == end.X && y == end.Y) break;
-                int e2 = 2 * err;
-                if (e2 >= dy) { err += dy; x += sx; }
-                if (e2 <= dx) { err += dx; y += sy; }
-            }
-        }
-
-        void DrawThickPoint(int cx, int cy, int thickness)
-        {
-            int r = thickness / 2;
-            for (int y = cy - r; y <= cy + r; y++)
-            {
-                if (y < 0 || y >= height) continue;
-                for (int x = cx - r; x <= cx + r; x++)
-                {
-                    if (x < 0 || x >= width) continue;
-                    image[x, y] = black;
-                }
-            }
-        }
-
-        void DrawQuadratic((int X, int Y) p0, (int X, int Y) p1, (int X, int Y) p2, int thickness, int samples)
-        {
-            for (int i = 0; i <= samples; i++)
-            {
-                double t = (double)i / samples;
-                double mt = 1 - t;
-                var x = (int)(mt * mt * p0.X + 2 * mt * t * p1.X + t * t * p2.X);
-                var y = (int)(mt * mt * p0.Y + 2 * mt * t * p1.Y + t * t * p2.Y);
-                DrawThickPoint(x, y, thickness);
-            }
-        }
-
-        // 畫眼睛
-        DrawCircle(shape.LeftEye, 12);
-        DrawCircle(shape.RightEye, 12);
-
-        // 畫嘴巴
         var mouthStart = shape.MouthStart;
         var mouthEnd = shape.MouthEnd;
         if (shape.MouthCurveOffset != 0)
         {
-            var mid = (
+            var control = (
                 (mouthStart.X + mouthEnd.X) / 2,
                 (mouthStart.Y + mouthEnd.Y) / 2 + shape.MouthCurveOffset);
-            DrawQuadratic(mouthStart, mid, mouthEnd, 4, samples: 40);
+            canvas.DrawQuadratic(mouthStart, control, mouthEnd, shape.MouthThickness, shape.MouthSamples);
         }
         else
         {
-            DrawLine(mouthStart, mouthEnd, 4);
+            canvas.DrawLine(mouthStart, mouthEnd, shape.MouthThickness);
         }
 
-        // 眉毛（僅怒或需要時繪製）
-        if (shape.LeftBrow is { } lb)
+        if (shape.LeftBrow is { } leftBrow)
         {
-            DrawLine(lb.Start, lb.End, 3);
+            canvas.DrawLine(leftBrow.Start, leftBrow.End, shape.BrowThickness);
         }
-        if (shape.RightBrow is { } rb)
+
+        if (shape.RightBrow is { } rightBrow)
         {
-            DrawLine(rb.Start, rb.End, 3);
+            canvas.DrawLine(rightBrow.Start, rightBrow.End, shape.BrowThickness);
         }
 
         return image;
