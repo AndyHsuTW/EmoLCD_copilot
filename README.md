@@ -101,3 +101,6 @@
 - `不支援的表情：XXX`：表情超出 `Smile/Angry/Neutral` 等允許清單。
 - `輸出資料夾不存在：/path/...`：DryRun 模式的輸出路徑位於不存在的資料夾。
 - `framebuffer 無法寫入：權限不足 - /dev/fb0`：LCD 模式未以具寫權限的使用者執行。
+## 測試腳位狀態(GPIO5的腳位)
+
+sudo gpioget -c gpiochip0 5
